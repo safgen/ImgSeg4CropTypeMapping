@@ -10,9 +10,10 @@ from tensorflow.python.keras import losses
 from tensorflow.python.keras import metrics
 from tensorflow.python.keras import models
 from tensorflow.python.keras import optimizers
-from confusion_matrix import plot_confusion_matrix, plot_to_image
-from UNETModel import unet_model
+from train.confusion_matrix import plot_confusion_matrix, plot_to_image
+from train.UNETModel import unet_model
 from deeplabModel import DeepLabV3Plus
+from AttnResUnet import Attention_ResUNet
 
 '''
   DATA SET LOADING FUNCTIONS
@@ -47,8 +48,8 @@ def get_eval_dataset():
 
 
 # # Specify Config Variables for Data and Model Paths
-SOURCE = 'l8-data' ## update this for new data source
-JOB_FOLDER = 'Deeplab_FTLoss_g090'  ## update this for new models
+SOURCE = 's2-data' ## update this for new data source
+JOB_FOLDER = 'AttResUnet_FTLoss_g120-s2'  ## update this for new models
 JOB_DIR = JOB_FOLDER + '/trainer'
 MODEL_DIR = JOB_DIR + '/model'
 LOGS_DIR = JOB_DIR + '/logs'
@@ -57,7 +58,7 @@ checkpoint_path = JOB_DIR + "/checkpoints/cp-{epoch:04d}.ckpt"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 
-FOLDER = SOURCE + '/combined-data-aug' ## update this for data period
+FOLDER = SOURCE + '/20190830' ## update this for data period
 TRAINING_BASE = 'training_patches'
 EVAL_BASE = 'eval_patches'
 # 
@@ -82,12 +83,12 @@ COLUMNS = [
 FEATURES_DICT = dict(zip(FEATURES, COLUMNS))
 
 # # Sizes of the training and evaluation datasets.
-TRAIN_SIZE = 38000
+TRAIN_SIZE = 20000
 EVAL_SIZE = 10000
 
 # Specify model training parameters.
 BATCH_SIZE = 32
-EPOCHS = 40
+EPOCHS = 50
 BUFFER_SIZE = 6000
 OPTIMIZER = 'adam'
 # LOSS = 'categorical_crossentropy'
@@ -106,6 +107,7 @@ test_labels = np.argmax(test_labels, axis=3)
 # SET UP CONTEXT FOR TRAINING WITH THE PREFERED DEVICE STRATEGY
 strat = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
 with strat.scope():
+  from train.metrics import dice_coef, jacard_coef
   # function to log confusion matrices like loss and metrics logs  
   def log_confusion_matrix(epoch, logs):
       
@@ -133,7 +135,9 @@ with strat.scope():
             tf.keras.metrics.Recall(name='recall'),
             # tf.keras.metrics.AUC(name='auc'),
             tf.keras.metrics.AUC(name='prc', curve='PR'),
-            tfa.metrics.F1Score(NCLASS, average='micro')
+            tfa.metrics.F1Score(NCLASS, average='micro'),
+            dice_coef, 
+            jacard_coef
             ]
 
   # Tversky Loss defined as Custom Loss Function (alpha=beta=0.5 => Dice Loss)
@@ -154,12 +158,13 @@ with strat.scope():
       return Ncl-T
   
   # Focal Tversky Loss (to customize focus on easier or harder examples) defined as Custom Loss Function (alpha=beta=0.5 => Dice Loss)
-  def focal_tversky_loss(y_true, y_pred, gamma=0.9):
+  def focal_tversky_loss(y_true, y_pred, gamma=1.5):
     tv = tversky_loss(y_true, y_pred)
     return tf.math.pow(tv, gamma)
 
   # m = unet_model(BANDS, NCLASS)
-  m = DeepLabV3Plus(KERNEL_SIZE, KERNEL_SIZE, len(BANDS), NCLASS)
+  # m = DeepLabV3Plus(KERNEL_SIZE, KERNEL_SIZE, len(BANDS), NCLASS)
+  m = Attention_ResUNet((KERNEL_SIZE, KERNEL_SIZE, len(BANDS)),  NUM_CLASSES=NCLASS)
   print(m.summary())
   m.compile(
     optimizer=optimizers.get(OPTIMIZER), 
@@ -200,12 +205,13 @@ with strat.scope():
       validation_freq=1,
       callbacks=[tf.keras.callbacks.TensorBoard(LOGS_DIR), cp_callback,  cm_callback],
     )
-  
+  m.save(MODEL_DIR, save_format='tf')
   # save history into a CSV file
   hist_df = pd.DataFrame(history.history) 
-  hist_csv_file = HIST_DIR +'/' + EPOCHS + '-epochs.csv'
-  with open(hist_csv_file, mode='w') as f:
+  os.mkdir(HIST_DIR)
+  hist_csv_file = HIST_DIR +'/' + str(EPOCHS) + '-epochs.csv'
+  with open(hist_csv_file, "w+") as f:
     hist_df.to_csv(f)
   
-  m.save(MODEL_DIR, save_format='tf')
+  
 
