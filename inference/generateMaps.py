@@ -110,7 +110,7 @@ def doPrediction(out_image_base, user_folder, kernel_buffer, region):
 
 YEAR = '20XX'
 FOLDER = 'TFRecord DATA FOLDER'  # This code expects the dierectory structure to be "folder_name/YEAR/STATE_Name"
-MODEL_DIR = "s2_wSWIR_aug"
+MODEL_DIR = "MODEL_DIR"
 opticalBands = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7']  # For Lamdsat 8, change to  corresponding names for Sentinel 2
 BANDS = opticalBands 
 RESPONSE = 'cropland'
