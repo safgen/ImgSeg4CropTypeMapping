@@ -14,7 +14,7 @@ Corn and Soybean Mapping model at 30 m resolution from Landsat 8/ Sentinel 2 as 
 [Refer to this Repo](https://github.com/safgen/plottingBigGeoTiffs)
 
 ### Citation
-If you find this code helpful, please cite the followinbg work:
+If you find this code helpful, please cite the following work:
 
 <p>@ARTICLE{10323532,<br>
   author={Zaheer, Sheir A. and Ryu, Youngryel and Lee, Junghee and Zhong, Zilong and Lee, Kyungdo},<br>
