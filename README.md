@@ -8,9 +8,10 @@ Corn and Soybean Mapping model at 30 m resolution from Landsat 8/ Sentinel 2 as 
 **train/train.py** -  trains the model. Make sure the data directory/folder are set correctly. The training data can be exported as _TFRecord_ from Earth Engine. The model expects data as 256x256 samples with the bands and the labels stacked together as channels. ( Refer to this [notebook](https://github.com/safgen/CroplandMappingCDL/blob/main/DataPrep.ipynb) for reference)
 
 ### Model Inference for Map Generation
-To be updated soon
+**generateMaps.py** - to generate large maps from unlabeled data using a trained model. 
 
-
+### Plotting Large Maps.
+[Refer to this Repo](https://github.com/safgen/plottingBigGeoTiffs)
 
 ### Citation
 If you find this code helpful, please cite the followinbg work:
